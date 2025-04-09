@@ -4,23 +4,16 @@
 
 float add_row_col(unsigned int* rowPtrs, unsigned int* colPtrs, float* r_values, float* c_values, int num_row_elements, int num_col_elements){
 
-	int i = 0;
-	int j = 0;
-
 	float sum = 0;
-	while(i < num_row_elements && j < num_col_elements){
-		
-		int index_row = rowPtrs[i];
-		int index_col = colPtrs[j];
 
-		if(index_row == index_col){
-			sum += r_values[i]*c_values[j];
-			i++;
-			j++;	
-		}else if(index_row < index_col){
-			i++;
-		}else{
-			j++;
+	for(int i = 0; i < num_row_elements; i++){
+		for(int j = 0; j < num_col_elements; j++){
+			int index_row = rowPtrs[i];
+			int index_col = colPtrs[j];
+
+			if(index_row == index_col){
+				sum += r_values[i]*c_values[j];
+			}
 		}
 	}
 
