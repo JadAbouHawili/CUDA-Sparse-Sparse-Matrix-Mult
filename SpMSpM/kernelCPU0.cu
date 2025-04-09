@@ -9,29 +9,29 @@ void spmspm_cpu0(COOMatrix* cooMatrix1, CSRMatrix* csrMatrix1, CSCMatrix* cscMat
 	for(int col_2 = 0; col_2 < cscMatrix2-> numCols; ++col_2){
 		int start = cscMatrix2->colPtrs[col_2];
 		int end = cscMatrix2->colPtrs[col_2 + 1];
-		int toStore_mem[cscMatrix1->numRows];
-		for(int i = 0; i < cscMatrix2->numRows; i++){
+		float toStore_mem[cooMatrix1->numRows];
+		for(int i = 0; i < cooMatrix1->numRows; i++){
 			toStore_mem[i] = 0;
 		}
 		for(int i = 0; i < cooMatrix1->numNonzeros; ++i){
 			int inRow = cooMatrix1->rowIdxs[i];
 			int inCol = cooMatrix1->colIdxs[i];
-			int val = cooMatrix1->values[i];
+			float val = cooMatrix1->values[i];
 
-			int val2 = 0;
+			float val2 = 0;
 			for(int j = start; j < end; j++){
 				if(inCol == cscMatrix2->rowIdxs[j]){
 					val2 = cscMatrix2->values[j];
 					break;
 				}
 			}
-			int toStore = val2*val;
+			float toStore = val2*val;
 			
 			toStore_mem[inRow] += toStore;
 		}
 		
-		for(int i = 0; i < cscMatrix2->numRows; i++){
-			int val = toStore_mem[i];
+		for(int i = 0; i < cooMatrix1->numRows; i++){
+			float val = toStore_mem[i];
 			if(val != 0){
 				int index = cooMatrix3->numNonzeros;
 				cooMatrix3->rowIdxs[index] = i;
