@@ -1,6 +1,6 @@
 
 #include "common.h"
-#include <map>
+#include <unordered_map>
 using namespace std ; 
 float add_row_col(unsigned int* rowPtrs, unsigned int* colPtrs, float* r_values, float* c_values, int num_row_elements, int num_col_elements){
 
@@ -50,7 +50,8 @@ void spmspm_cpu0(COOMatrix* cooMatrix1, CSRMatrix* csrMatrix1, CSCMatrix* cscMat
 
 // matrix 1 as COO cooMatrix1
 // matrix 2 as CSR csrMatrix2
-	map<pair<int,int>,float> result ; 
+	unordered_map<int,float> result ;  
+	int numColumnsOutputMatrix = cooMatrix3 -> numCols; 
 	for(int i = 0; i < cooMatrix1->numNonzeros; ++i){
 		int rowNumber = cooMatrix1 -> rowIdxs[i];
 		int colNumber = cooMatrix1 -> colIdxs[i];
@@ -60,13 +61,14 @@ void spmspm_cpu0(COOMatrix* cooMatrix1, CSRMatrix* csrMatrix1, CSCMatrix* cscMat
 		for(int j = csrStart ; j < csrEnd ; ++j){
 			int colNumber2 = csrMatrix2 -> colIdxs[j];
 			float val2 = csrMatrix2 -> values[j];
-			result[{rowNumber,colNumber2}] += val*val2 ; 
+			int oneToOneIndex = rowNumber*numColumnsOutputMatrix + colNumber2 ; 
+			result[oneToOneIndex] += val*val2 ; 
 		}
 	}
 	for(auto & p : result){
 		int index = cooMatrix3->numNonzeros++;
-		cooMatrix3->rowIdxs[index] = p.first.first ; 
-		cooMatrix3->colIdxs[index] = p.first.second ; 
-		cooMatrix3->values[index] = p.second ;
+		cooMatrix3->rowIdxs[index] = p.first / numColumnsOutputMatrix ; 
+		cooMatrix3->colIdxs[index] = p.first % numColumnsOutputMatrix ; 
+		cooMatrix3->values[index] = p.second;
 	}
 }
