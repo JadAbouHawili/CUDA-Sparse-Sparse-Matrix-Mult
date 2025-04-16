@@ -1,75 +1,70 @@
 //
 #include "common.h"
 //#include <unordered_map>
+
+#define BLOCK_DIM 32 
+#define temp_size 16 
+
 using namespace std;
-//
-//__global__ void calculate_kernel(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
-//                 CSCMatrix *cscMatrix1, COOMatrix *cooMatrix2,
-//                 CSRMatrix *csrMatrix2, CSCMatrix *cscMatrix2,
-//                 COOMatrix *cooMatrix3, unsigned int numRows1,
-//                 unsigned int numRows2, unsigned int numCols2,
-//                 unsigned int numNonzeros1, unsigned int numNonzeros2, unordered_map<int, float> result) {
-//	
-//  int numColumnsOutputMatrix = cooMatrix3->numCols;
-//  int i = blockDim.x * blockIdx.x + threadIdx.x;
-//  if (i < cooMatrix1->numNonzeros) {
-//    int rowNumber = cooMatrix1->rowIdxs[i];
-//    int colNumber = cooMatrix1->colIdxs[i];
-//    float val = cooMatrix1->values[i];
-//    int csrStart = csrMatrix2->rowPtrs[colNumber];
-//    int csrEnd = csrMatrix2->rowPtrs[colNumber + 1];
-//    for (int j = csrStart; j < csrEnd; ++j) {
-//      int colNumber2 = csrMatrix2->colIdxs[j];
-//      float val2 = csrMatrix2->values[j];
-//      int oneToOneIndex = rowNumber * numColumnsOutputMatrix + colNumber2;
-//      result[oneToOneIndex] += val * val2;
-//    }
-//  }
-//
-//}
-//
-//__global__ void populate_output(unordered_map<int, float> result, COOMatrix *cooMatrix3){
-//
-//  int numColumnsOutputMatrix = cooMatrix3->numCols;
-//  // synchronize across all blocks
-//  for (auto &p : result) {
-//    int index = cooMatrix3->numNonzeros++;
-//    cooMatrix3->rowIdxs[index] = p.first / numColumnsOutputMatrix;
-//    cooMatrix3->colIdxs[index] = p.first % numColumnsOutputMatrix;
-//    cooMatrix3->values[index] = p.second;
-//  }
-//}
+
+__global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2, COOMatrix *cooMatrix3){
+	int i = blockDim.x*blockIdx.x + threadIdx.x;
+
+	if(i < csrMatrix1->numRows){
+		int row_start = csrMatrix1->rowPtrs[i];
+		int row_end = csrMatrix1->rowPtrs[i+1];
+
+		//temporary storage
+		float temp[temp_size];
+		for(int k = 0; k < temp_size; k++){
+			temp[k] = 0;
+		}
+
+		// iterate over every row in matrix 2
+
+		for(int j = row_start; j < row_end; ++j){
+			int col = csrMatrix1->colIdxs[j];
+			float val = csrMatrix1->values[j];
+
+
+			int row_start_2 = csrMatrix2->rowPtrs[col];
+			int row_end_2 = csrMatrix2->rowPtrs[col+1];
+
+			for(int k = row_start_2; k < row_end_2; k++){
+				int col2 = csrMatrix2->colIdxs[k];
+				float val2 = csrMatrix2->values[k];
+
+				float store = val*val2;
+
+				temp[col2] += store;
+			}
+		}
+		for(int k = 0; k < temp_size;k++){
+			if(temp[k] != 0){
+				int index = cooMatrix3->numNonzeros++;
+  				cooMatrix3->rowIdxs[index] = i;
+  				cooMatrix3->colIdxs[index] = k;
+  				cooMatrix3->values[index] = temp[k];
+			}
+		}
+	}
+
+}
+
+
+
 void spmspm_gpu0(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
                  CSCMatrix *cscMatrix1, COOMatrix *cooMatrix2,
                  CSRMatrix *csrMatrix2, CSCMatrix *cscMatrix2,
                  COOMatrix *cooMatrix3, unsigned int numRows1,
                  unsigned int numRows2, unsigned int numCols2,
                  unsigned int numNonzeros1, unsigned int numNonzeros2) {
-//// call kernels here and nothing else
-//  // matrix 1 as COO cooMatrix1
-//  // matrix 2 as CSR csrMatrix2
-//  unordered_map<int, float> result;
-//	int numThreadsPerBlock = 128;
-//	int numBlocks = (cooMatrix1->numNonzeros + numThreadsPerBlock - 1)/ numThreadsPerBlock;
-//	calculate_kernel<<<numBlocks,numThreadsPerBlock>>>(cooMatrix1, csrMatrix1,
-//                 cscMatrix1, cooMatrix2,
-//                 csrMatrix2, cscMatrix2,
-//                 cooMatrix3, numRows1,
-//                 numRows2, numCols2,
-//                  numNonzeros1,  numNonzeros2, result);	
-//
-////	numThreadsPerBlock = 128;
-////	numBlocks = (cooMatrix1->numNonzeros + numThreadsPerBlock - 1)/ numThreadsPerBlock
-//
-////populate_output(result, cooMatrix3)
-//	cudaDeviceSynchronize();
-//  // synchronize across all blocks
-//  int numColumnsOutputMatrix = cooMatrix3->numCols;
-//  for (auto &p : result) {
-//    int index = cooMatrix3->numNonzeros++;
-//    cooMatrix3->rowIdxs[index] = p.first / numColumnsOutputMatrix;
-//    cooMatrix3->colIdxs[index] = p.first % numColumnsOutputMatrix;
-//    cooMatrix3->values[index] = p.second;
-//  }
-//
+	// CSR CSR
+
+
+	int threadsPerBlock = BLOCK_DIM;
+	int num_Blocks = (csrMatrix1->numRows + threadsPerBlock - 1)/threadsPerBlock;
+	mul_kernel<<<num_Blocks,threadsPerBlock>>>(csrMatrix1,csrMatrix2,cooMatrix3);
+
+
 }
