@@ -2,53 +2,54 @@
 #include "common.h"
 //#include <unordered_map>
 
-#define BLOCK_DIM 32 
+#define BLOCK_DIM 256 
 #define temp_size 16 
 
 using namespace std;
 
-__global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2, COOMatrix *cooMatrix3){
+__global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2, COOMatrix *cooMatrix3, int num_rows){
 	int i = blockDim.x*blockIdx.x + threadIdx.x;
+	int k = csrMatrix1->numCols;
 
-	if(i < csrMatrix1->numRows){
-		int row_start = csrMatrix1->rowPtrs[i];
-		int row_end = csrMatrix1->rowPtrs[i+1];
+	extern __shared__ float buffer[];	
+	
+	int myRow = i/k;
+	int myCol = i%k;
+	
+	if(myRow < csrMatrix1->numRows){
+		int numNonZeroEntries = csrMatrix1->rowPtrs[myRow + 1] - csrMatrix1->rowPtrs[myRow];
+		
+		if(myCol < numNonZeroEntries){
+			int index = csrMatrix1->rowPtrs[myRow] + myCol;
 
-		//temporary storage
-		float temp[temp_size];
-		for(int k = 0; k < temp_size; k++){
-			temp[k] = 0;
-		}
+			int col = csrMatrix1->colIdxs[index];
+			int val = csrMatrix1->values[index];
 
-		// iterate over every row in matrix 2
-
-		for(int j = row_start; j < row_end; ++j){
-			int col = csrMatrix1->colIdxs[j];
-			float val = csrMatrix1->values[j];
-
-
-			int row_start_2 = csrMatrix2->rowPtrs[col];
-			int row_end_2 = csrMatrix2->rowPtrs[col+1];
-
-			for(int k = row_start_2; k < row_end_2; k++){
-				int col2 = csrMatrix2->colIdxs[k];
-				float val2 = csrMatrix2->values[k];
-
-				float store = val*val2;
-
-				temp[col2] += store;
-			}
-		}
-		for(int k = 0; k < temp_size;k++){
-			if(temp[k] != 0){
-				int index = cooMatrix3->numNonzeros++;
-  				cooMatrix3->rowIdxs[index] = i;
-  				cooMatrix3->colIdxs[index] = k;
-  				cooMatrix3->values[index] = temp[k];
+			// go to matrix2
+			int numNonZeroEntries2 = csrMatrix2->rowPtrs[col + 1] - csrMatrix2->rowPtrs[col];
+			int index2 = csrMatrix2->rowPtrs[col];
+			for(int j = 0; j < numNonZeroEntries2; j++){
+				int col_2 = csrMatrix2->colIdxs[index2 + j];
+				int val_2 = csrMatrix2->values[index2 + j];
+				atomicAdd(&buffer[myRow * csrMatrix2->numCols + col_2], val*val_2);
 			}
 		}
 	}
+	__syncthreads();
 
+	if(threadIdx.x == 0){
+		for(int i = 0 ; i < csrMatrix2->numCols; i++){
+			for(int j = 0; j < num_rows; j++){
+				float x = buffer[j * csrMatrix2->numCols + i];
+				if(x > 0){
+					int index = atomicAdd(&cooMatrix3->numNonzeros,1);
+  					cooMatrix3->rowIdxs[index] = j;
+  					cooMatrix3->colIdxs[index] = i;
+  					cooMatrix3->values[index] = x;
+				}
+			}
+		}
+	}
 }
 
 
@@ -60,11 +61,15 @@ void spmspm_gpu0(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
                  unsigned int numRows2, unsigned int numCols2,
                  unsigned int numNonzeros1, unsigned int numNonzeros2) {
 	// CSR CSR
+	int k = csrMatrix1->numCols;
+	int num_rows = BLOCK_DIM/k;
 
+	int threadsPerBlock = num_rows*k;
+	int num_Blocks = ((csrMatrix1->numRows)*k + threadsPerBlock - 1)/threadsPerBlock;
 
-	int threadsPerBlock = BLOCK_DIM;
-	int num_Blocks = (csrMatrix1->numRows + threadsPerBlock - 1)/threadsPerBlock;
-	mul_kernel<<<num_Blocks,threadsPerBlock>>>(csrMatrix1,csrMatrix2,cooMatrix3);
+	size_t shared_mem_size = sizeof(float) * num_rows * csrMatrix2->numCols;
+
+	mul_kernel<<<num_Blocks,threadsPerBlock,shared_mem_size >>>(csrMatrix1,csrMatrix2,cooMatrix3,num_rows);
 
 
 }
