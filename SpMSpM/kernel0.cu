@@ -112,7 +112,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
 
       float store = val * val2;
 
-      temp[col2] += store;
+      atomicAdd(&temp[col2], store);
     }
   }
   __syncthreads();
