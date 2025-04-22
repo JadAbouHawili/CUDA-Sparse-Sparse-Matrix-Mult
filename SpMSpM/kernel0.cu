@@ -86,7 +86,6 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
                            COOMatrix *cooMatrix3) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   int row = i / BLOCK_DIM;
-  // int col = i % BLOCK_DIM;
   int num_nonzeros_row =
       csrMatrix1->rowPtrs[row + 1] - csrMatrix1->rowPtrs[row];
 
@@ -101,7 +100,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
 
     // iterate over every row in matrix 2
 
-    int col = csrMatrix1->rowPtrs[row] + threadIdx.x;
+    int col = csrMatrix1->colIdxs[csrMatrix1->rowPtrs[row] + threadIdx.x];
     float val = csrMatrix1->values[col];
 
     int row_start_2 = csrMatrix2->rowPtrs[col];
@@ -113,8 +112,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
 
       float store = val * val2;
 
-      if (col2 < temp_size)
-        temp[col2] += store;
+      temp[col2] += store;
     }
   }
   __syncthreads();
