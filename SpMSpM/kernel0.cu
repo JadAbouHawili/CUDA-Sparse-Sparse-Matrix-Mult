@@ -36,7 +36,6 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2, COOMatr
 
 				float store = val*val2;
 
-				if(col2 < temp_size)
 				temp[col2] += store;
 			}
 		}
