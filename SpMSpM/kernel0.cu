@@ -92,7 +92,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
   __shared__ float temp[temp_size];
   if (threadIdx.x == 0) {
     for (int k = 0; k < temp_size; k++) {
-      temp[k] = 0;
+      temp[k] = 0.0;
     }
   }
   __syncthreads();
