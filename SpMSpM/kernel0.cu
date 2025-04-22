@@ -120,7 +120,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
     for (int k = 0; k < temp_size; k++) {
       if (temp[k] != 0) {
         int index = atomicAdd(&cooMatrix3->numNonzeros, 1);
-        cooMatrix3->rowIdxs[index] = i;
+        cooMatrix3->rowIdxs[index] = row;
         cooMatrix3->colIdxs[index] = k;
         cooMatrix3->values[index] = temp[k];
       }
