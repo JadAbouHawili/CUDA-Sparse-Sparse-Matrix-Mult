@@ -96,6 +96,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
       temp[k] = 0;
     }
   }
+  __syncthreads();
   if (threadIdx.x < num_nonzeros_row) {
 
     // iterate over every row in matrix 2
