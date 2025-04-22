@@ -11,7 +11,7 @@
 
 using namespace std;
 
-__global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
+__global__ void mul_kernel_opt(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
                            COOMatrix *cooMatrix3) {
   int i = blockDim.x * blockIdx.x + threadIdx.x;
   int row = i / BLOCK_DIM;
@@ -30,7 +30,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
     // iterate over every row in matrix 2
 
     int col = csrMatrix1->colIdxs[csrMatrix1->rowPtrs[row] + threadIdx.x];
-    float val = csrMatrix1->values[col];
+    float val = csrMatrix1->values[csrMatrix1->rowPtrs[row] + threadIdx.x];
 
     int row_start_2 = csrMatrix2->rowPtrs[col];
     int row_end_2 = csrMatrix2->rowPtrs[col + 1];
@@ -69,6 +69,6 @@ void spmspm_gpu1(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
   int threadsPerBlock = BLOCK_DIM;
   int num_Blocks = numRows1;
 
-  mul_kernel<<<num_Blocks, threadsPerBlock>>>(csrMatrix1, csrMatrix2,
+  mul_kernel_opt<<<num_Blocks, threadsPerBlock>>>(csrMatrix1, csrMatrix2,
                                               cooMatrix3);
 }
