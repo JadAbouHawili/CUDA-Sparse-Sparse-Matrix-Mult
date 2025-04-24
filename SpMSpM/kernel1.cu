@@ -7,7 +7,7 @@
 // #include <unordered_map>
 
 #define BLOCK_DIM 256
-#define temp_size 32
+#define temp_size 750
 
 using namespace std;
 
