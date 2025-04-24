@@ -58,7 +58,7 @@ __global__ void mul_kernel_opt(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
 
   __syncthreads();
   if (threadIdx.x == 0) {
-    for (int k = 0; k < temp_size; k++) {
+    for (int k = 0; k < csrMatrix2->numCols; k++) {
       if (temp[k] != 0) {
         int index = atomicAdd(&cooMatrix3->numNonzeros, 1);
         cooMatrix3->rowIdxs[index] = row;
