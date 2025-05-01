@@ -30,7 +30,7 @@ __global__ mul_kernel_opt_2(CSRMatrix* csrMatrix1,CSRMatrix* csrMatrix2,COOMatri
                 float valM2 = csrMatrix2 -> values[varStartingRowIndexM2] ;
                 int colIndexM2 = csrMatrix2 -> colIdxs[varStartingRowIndexM2] ;
                 if(colIndexM2 < COL_OUTPUT_SIZE*counterLoop){
-                    rowOutput_s[colIndexM2] += valM1 * valM2 ;
+                    rowOutput_s[colIndexM2%COL_OUTPUT_SIZE] += valM1 * valM2 ;
                     if(numEmptyElements == 0){
                         emptyCellIdx = varStartingRowIndexM2 ;
                     }
@@ -50,9 +50,8 @@ __global__ mul_kernel_opt_2(CSRMatrix* csrMatrix1,CSRMatrix* csrMatrix2,COOMatri
                 if(rowOutput_s[outputIdx] != 0){
                     int index = atomicAdd(&cooMatrix3->numNonzeros,1);
                     cooMatrix3->rowIdxs[index] = rowIdxM1;
-                    cooMatrix3->colIdxs[index] = 1;// to be computed;
+                    cooMatrix3->colIdxs[index] = COL_OUTPUT_SIZE*numLoops + outputIdx;// to be computed;
                     cooMatrix3->values[index] = rowOutput_s[outputIdx];
-
                 }
             }
         }
