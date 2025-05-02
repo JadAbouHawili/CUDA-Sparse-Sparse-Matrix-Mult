@@ -1,7 +1,7 @@
 
 #include "common.h"
 
-#define COL_OUTPUT_SIZE 64 
+#define COL_OUTPUT_SIZE 32 
 #define EMPTY_CELL std::numeric_limits<float>::max()
 
 
@@ -44,18 +44,48 @@ __global__ void mul_kernel_opt_2(CSRMatrix* csrMatrix1, CSRMatrix* csrMatrix2, C
         }
         __syncthreads();
 
-        // Write non-zero values to COO
-        for (int i = threadIdx.x; i < COL_OUTPUT_SIZE; i += blockDim.x) {
-		if (fabsf(rowOutput_s[i]) > 1e-7f)  {
-                int global_col = start_col + i;
-                if (global_col < numColM2) { // Ensure within matrix bounds
-                    int index = atomicAdd(&cooMatrix3->numNonzeros, 1);
-                    cooMatrix3->rowIdxs[index] = rowIdxM1;
-                    cooMatrix3->colIdxs[index] = global_col;
-                    cooMatrix3->values[index] = rowOutput_s[i];
-                }
-            }
-        }
+	// Create shared variables for local counting and positioning
+	__shared__ int local_count;
+	__shared__ int current_pos;
+
+	// Initialize local_count to 0
+	if (threadIdx.x == 0) {
+    		local_count = 0;
+	}
+
+	// Each thread checks its assigned element and contributes to local_count
+	for (int i = threadIdx.x; i < COL_OUTPUT_SIZE; i += blockDim.x) {
+    		int global_col = start_col + i;
+    		if (global_col < numColM2 && fabsf(rowOutput_s[i]) > 1e-7f) {
+        		atomicAdd(&local_count, 1); // Increment local counter
+    		}
+	}
+	__syncthreads();
+
+	// Atomically add the total local_count to the global counter and get the starting index
+	__shared__ int start_index;
+	if (threadIdx.x == 0) {
+    		start_index = atomicAdd(&cooMatrix3->numNonzeros, local_count);
+	}
+
+
+	// Reset current_pos for writing phase
+	if (threadIdx.x == 0) {
+    		current_pos = 0;
+	}
+	__syncthreads();
+
+	// Each thread writes its non-zero elements using the computed start_index
+	for (int i = threadIdx.x; i < COL_OUTPUT_SIZE; i += blockDim.x) {
+    		int global_col = start_col + i;
+    		if (global_col < numColM2 && fabsf(rowOutput_s[i]) > 1e-7f) {
+        		// Determine position within the current chunk's entries
+        		int local_pos = atomicAdd(&current_pos, 1);
+        		cooMatrix3->rowIdxs[start_index + local_pos] = rowIdxM1;
+        		cooMatrix3->colIdxs[start_index + local_pos] = global_col;
+        		cooMatrix3->values[start_index + local_pos] = rowOutput_s[i];
+    		}
+	}
         __syncthreads();
     }
 }
@@ -65,7 +95,7 @@ __global__ void mul_kernel_opt_2(CSRMatrix* csrMatrix1, CSRMatrix* csrMatrix2, C
 // function that launches the kernel
 void spmspm_gpu2(COOMatrix* cooMatrix1, CSRMatrix* csrMatrix1, CSCMatrix* cscMatrix1, COOMatrix* cooMatrix2, CSRMatrix* csrMatrix2, CSCMatrix* cscMatrix2, COOMatrix* cooMatrix3, unsigned int numRows1, unsigned int numRows2, unsigned int numCols2, unsigned int numNonzeros1, unsigned int numNonzeros2) {
 	
-    int numThreadsPerBlock = 64;
+    int numThreadsPerBlock = 32;
     cudaMemset(&cooMatrix3->numNonzeros, 0, sizeof(int));
 
 
