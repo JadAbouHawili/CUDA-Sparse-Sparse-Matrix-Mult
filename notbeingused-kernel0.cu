@@ -60,6 +60,7 @@ void spmspm_gpu0(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
 // parallel version, false assumption that cols of matrix 2 is bounded i.e
 // fixed number on shared memory that would be enough to store the
 // contributions when computing the output row
+// usage of dynamic memory based on cols of second matrix, eventually run out...
 /*
 #include "common.h"
 
