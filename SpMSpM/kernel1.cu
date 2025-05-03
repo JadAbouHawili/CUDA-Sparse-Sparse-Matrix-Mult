@@ -5,7 +5,7 @@
 #define COL_OUTPUT_SIZE 64
 #define EMPTY_CELL std::numeric_limits<float>::max()
 
-__global__ void mul_kernel_opt_2(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
+__global__ void mul_kernel_opt_1(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
                                  COOMatrix *cooMatrix3, unsigned int numColM2) {
   int numLoops = (numColM2 + COL_OUTPUT_SIZE - 1) / COL_OUTPUT_SIZE;
 
@@ -75,6 +75,6 @@ void spmspm_gpu1(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
 
   // num rows of first matrix
   int numBlocks = numRows1;
-  mul_kernel_opt_2<<<numBlocks, numThreadsPerBlock>>>(csrMatrix1, csrMatrix2,
+  mul_kernel_opt_1<<<numBlocks, numThreadsPerBlock>>>(csrMatrix1, csrMatrix2,
                                                       cooMatrix3, numCols2);
 }
