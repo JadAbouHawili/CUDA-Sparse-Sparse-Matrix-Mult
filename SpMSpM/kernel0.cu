@@ -66,7 +66,7 @@ void spmspm_gpu0(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
                  unsigned int numRows2, unsigned int numCols2,
                  unsigned int numNonzeros1, unsigned int numNonzeros2) {
 
-  int numThreadsPerBlock = 64;
+  int numThreadsPerBlock = 32;
   cudaMemset(&cooMatrix3->numNonzeros, 0, sizeof(int));
 
   // num rows of first matrix
