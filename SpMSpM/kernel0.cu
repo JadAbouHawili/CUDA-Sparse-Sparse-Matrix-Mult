@@ -22,6 +22,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
       for (int i = 0; i < COL_OUTPUT_SIZE; ++i) {
         rowOutput_s[i] = 0.0f;
       }
+      __syncthreads();
 
       // Process each element in csrMatrix1's current row
       for (int elemIdxM1 = rowStartM1; elemIdxM1 < rowEndM1; ++elemIdxM1) {
@@ -42,6 +43,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
         }
       }
 
+      __syncthreads();
       // Write non-zero values to COO
       for (int i = 0; i < COL_OUTPUT_SIZE; ++i) {
         if (fabsf(rowOutput_s[i]) > 1e-7f) {
@@ -54,6 +56,8 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
           }
         }
       }
+
+      __syncthreads();
     }
   }
 }
