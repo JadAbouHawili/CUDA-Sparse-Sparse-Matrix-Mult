@@ -9,7 +9,7 @@ __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
 
   float rowOutput_s[COL_OUTPUT_SIZE];
 
-  int rowIdxM1 = threadIdx.x;
+  int rowIdxM1 = blockDim.x * blockIdx.x + threadIdx.x;
   int rowStartM1 = csrMatrix1->rowPtrs[rowIdxM1];
   int rowEndM1 = csrMatrix1->rowPtrs[rowIdxM1 + 1];
 
@@ -67,7 +67,7 @@ void spmspm_gpu0(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
   cudaMemset(&cooMatrix3->numNonzeros, 0, sizeof(int));
 
   // num rows of first matrix
-  int numBlocks =( numRows1 + numThreadsPerBlock -1)/numThreadsPerBlock;
+  int numBlocks = (numRows1 + numThreadsPerBlock - 1) / numThreadsPerBlock;
   mul_kernel<<<numBlocks, numThreadsPerBlock>>>(csrMatrix1, csrMatrix2,
                                                 cooMatrix3, numCols2);
 }
