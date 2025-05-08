@@ -1,17 +1,17 @@
 
 
 #include "common.h"
-
+#include  <stdio.h>
 #define COL_OUTPUT_SIZE 64
 #define EMPTY_CELL std::numeric_limits<float>::max()
 
 __global__ void mul_kernel_opt_1(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
-                                 COOMatrix *cooMatrix3, unsigned int numColM2) {
+                                 COOMatrix *cooMatrix3, unsigned int numColM2,unsigned int numRowsM1) {
   int numLoops = (numColM2 + COL_OUTPUT_SIZE - 1) / COL_OUTPUT_SIZE;
 
   __shared__ float rowOutput_s[COL_OUTPUT_SIZE];
 
-  int rowIdxM1 = blockIdx.x;
+  for(int rowIdxM1 = blockIdx.x; rowIdxM1 < numRowsM1 ; rowIdxM1 += gridDim.x){
   int rowStartM1 = csrMatrix1->rowPtrs[rowIdxM1];
   int rowEndM1 = csrMatrix1->rowPtrs[rowIdxM1 + 1];
 
@@ -61,6 +61,7 @@ __global__ void mul_kernel_opt_1(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
     __syncthreads();
   }
 }
+}
 
 // function that launches the kernel
 void spmspm_gpu1(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
@@ -75,6 +76,7 @@ void spmspm_gpu1(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
 
   // num rows of first matrix
   int numBlocks = numRows1;
+  printf("numRows : %u",numRows1);
   mul_kernel_opt_1<<<numBlocks, numThreadsPerBlock>>>(csrMatrix1, csrMatrix2,
-                                                      cooMatrix3, numCols2);
+                                                      cooMatrix3, numCols2,numRows1);
 }

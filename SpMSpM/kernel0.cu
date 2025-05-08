@@ -1,6 +1,6 @@
 #include "common.h"
 
-#define COL_OUTPUT_SIZE 2
+#define COL_OUTPUT_SIZE 64
 #define EMPTY_CELL std::numeric_limits<float>::max()
 
 __global__ void mul_kernel(CSRMatrix *csrMatrix1, CSRMatrix *csrMatrix2,
@@ -62,7 +62,7 @@ void spmspm_gpu0(COOMatrix *cooMatrix1, CSRMatrix *csrMatrix1,
                  unsigned int numRows2, unsigned int numCols2,
                  unsigned int numNonzeros1, unsigned int numNonzeros2) {
 
-  int numThreadsPerBlock = 32;
+  int numThreadsPerBlock = 64;
   cudaMemset(&cooMatrix3->numNonzeros, 0, sizeof(int));
   int numBlocks = (numRows1 + numThreadsPerBlock - 1) / numThreadsPerBlock;
   mul_kernel<<<numBlocks, numThreadsPerBlock>>>(csrMatrix1, csrMatrix2,

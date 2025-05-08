@@ -1,6 +1,6 @@
 #include "common.h"
 
-#define COL_OUTPUT_SIZE 32 
+#define COL_OUTPUT_SIZE 64 
 #define WARP_SIZE 32 
 
 __global__ void mul_kernel_opt_3(CSRMatrix* csrMatrix1, CSRMatrix* csrMatrix2, COOMatrix* cooMatrix3, unsigned int numColM2) {
@@ -94,7 +94,7 @@ void spmspm_gpu3(COOMatrix* cooMatrix1, CSRMatrix* csrMatrix1, CSCMatrix* cscMat
                  COOMatrix* cooMatrix2, CSRMatrix* csrMatrix2, CSCMatrix* cscMatrix2,
                  COOMatrix* cooMatrix3, unsigned int numRows1, unsigned int numRows2,
                  unsigned int numCols2, unsigned int numNonzeros1, unsigned int numNonzeros2) {
-    int numThreadsPerBlock = 32; 
+    int numThreadsPerBlock = 64; 
     cudaMemset(&cooMatrix3->numNonzeros, 0, sizeof(int));
     mul_kernel_opt_3<<<numRows1, numThreadsPerBlock>>>(csrMatrix1, csrMatrix2, cooMatrix3, numCols2);
 }
