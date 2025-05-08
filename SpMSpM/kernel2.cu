@@ -2,7 +2,6 @@
 #include "common.h"
 
 #define COL_OUTPUT_SIZE 64 
-#define EMPTY_CELL std::numeric_limits<float>::max()
 
 
 __global__ void mul_kernel_opt_2(CSRMatrix* csrMatrix1, CSRMatrix* csrMatrix2, COOMatrix* cooMatrix3, unsigned int numColM2) {

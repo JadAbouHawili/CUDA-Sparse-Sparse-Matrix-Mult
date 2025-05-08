@@ -1,6 +1,6 @@
 #include "common.h"
 
-#define COL_OUTPUT_SIZE 64 
+#define COL_OUTPUT_SIZE 512 
 #define WARP_SIZE 32
 
 __global__ void mul_kernel_opt_4(CSRMatrix* csrMatrix1, CSRMatrix* csrMatrix2,
